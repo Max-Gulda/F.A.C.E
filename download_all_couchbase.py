@@ -1,4 +1,5 @@
-from couchbase.cluster import Cluster, ClusterOptions
+from couchbase.cluster import Cluster
+from couchbase.options import ClusterOptions
 from couchbase.auth import PasswordAuthenticator
 import os
 import base64
@@ -10,7 +11,7 @@ def init():
     admin_password = 'f.a.c.e.flempan'
 
     # Set the Couchbase connection parameters
-    couchbase_url = 'couchbase://localhost'
+    couchbase_url = 'couchbase://167.172.105.85:5984'
     bucket_name = 'face'
 
     try:
