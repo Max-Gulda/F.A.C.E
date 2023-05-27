@@ -8,21 +8,20 @@ import os
 
 
 def init():
-
     # Set the admin credentials
-    admin_username = 'admin'
-    admin_password = 'f.a.c.e.flempan'
+    admin_username = 'FACE'
+    admin_password = 'Flempan123!'
 
     # Set the Couchbase connection parameters
-    cluster_url = 'couchbase://167.172.105.85:5984'
+    cluster_url = 'couchbases://cb.a6cm4sbxf8i5qvak.cloud.couchbase.com'
     cluster_options = ClusterOptions(PasswordAuthenticator(admin_username, admin_password))
 
     # Connect to the Couchbase cluster
     cluster = Cluster(cluster_url, cluster_options)
-    bucket_name = 'face'
+    bucket_name = 'travel-sample'
     bucket = cluster.bucket(bucket_name)
     collection = bucket.default_collection()
-    
+
     # Define the document for svm_model_160x160.pkl
     svm_model_doc = {
         'type': 'svm_model'
@@ -36,25 +35,33 @@ def init():
     svm_model_file = "Data/svm_model_160x160.pkl"
     with open(svm_model_file, "rb") as f:
         svm_model_data = f.read()
-        collection.upsert_attachment(svm_model_doc_id, "svm_model_160x160.pkl", svm_model_data, content_type="application/octet-stream")
+        encoded_data = base64.b64encode(svm_model_data).decode('utf-8')
+        attachments = {
+            'name': 'svm_model_160x160.pkl',
+            'data': encoded_data,
+            'content_type': 'application/octet-stream'
+        }
+        svm_model_doc['_attachments'] = attachments
+        collection.upsert(svm_model_doc_id, svm_model_doc)
 
     # Define the document for face_embeddings_done_4classes.npz
     face_embeddings_doc = {
         'type': 'face_embeddings'
     }
 
-    # Save the document for face_embeddings_done_4classes.npz
-    face_embeddings_doc_id = 'face_embeddings_done_4classes.npz'
-    collection.upsert(face_embeddings_doc_id, face_embeddings_doc)
-
     # Attach the face_embeddings_done_4classes.npz file to the face_embeddings_doc
     face_embeddings_file = "Data/face_embeddings_done_4classes.npz"
     with open(face_embeddings_file, "rb") as f:
         face_embeddings_data = f.read()
-        collection.upsert_attachment(face_embeddings_doc_id, "face_embeddings_done_4classes.npz", face_embeddings_data, content_type="application/octet-stream")
-        
-    # Print a message to indicate success
-    print("Files attached successfully.")
+        encoded_data = base64.b64encode(face_embeddings_data).decode('utf-8')
+        attachments = {
+            'name': 'face_embeddings_done_4classes.npz',
+            'data': encoded_data,
+            'content_type': 'application/octet-stream'
+        }
+        face_embeddings_doc['_attachments'] = attachments
+        face_embeddings_doc_id = 'face_embeddings_done_4classes.npz'
+        collection.upsert(face_embeddings_doc_id, face_embeddings_doc)
 
     dir_path = 'dataset'
     dir_list = [d for d in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, d)) and not d.startswith('.')]
@@ -138,5 +145,6 @@ def init():
         # Print the ID and revision of the new document
         print('New document created for', fullName)
     print("Done uploading all users.")
+
 
 init()
