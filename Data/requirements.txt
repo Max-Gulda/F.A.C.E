@@ -1,0 +1,17 @@
+##### Requirements without version specifiers #####
+##### pip install -r requirements.txt -f file
+
+numpy
+opencv-python
+opencv-contrib-python
+matplotlib
+PyObjC
+gtts
+scikit-learn
+mtcnn
+keras
+keras_facenet
+playsound
+scipy
+
+
