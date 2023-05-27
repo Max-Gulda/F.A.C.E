@@ -121,12 +121,43 @@ def upload_pkl():
     except Exception as e:
         print(f'Error uploading PKL file: {e}')
 
+def download_npz():
+    document_id = 'Data/face_embeddings_done_4classes.npz'
+    collection_name = 'NPZ'
+    output_folder = 'Data'
+    try:
+        # Connect to the Couchbase cluster
+        cluster = Cluster(server_url, ClusterOptions(
+            authenticator=PasswordAuthenticator(accessname, secret)
+        ))
+        bucket = cluster.bucket(bucket_name)
+        collection = bucket.collection(collection_name)
+
+        # Retrieve the NPZ file from the collection
+        result = collection.get(document_id)
+        file_data = result.value
+
+        # Save the NPZ file to the output folder
+        output_path = os.path.join(output_folder, os.path.basename(document_id))
+        with open(output_path, 'wb') as file_obj:
+            file_obj.write(file_data)
+
+        print('NPZ file downloaded successfully.')
+
+    except Exception as e:
+        print(f'Error downloading NPZ file: {e}')
+
+
+
+
+
 def upload_neural_network():
     upload_npz()
     upload_pkl()
 
+download_npz()
 
-upload_neural_network()
+#upload_neural_network()
 
 # Dataset path and collection prefix
 #dataset_path = 'dataset'
