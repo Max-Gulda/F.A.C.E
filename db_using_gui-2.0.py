@@ -62,9 +62,10 @@ class FACELOADING:
                 return None
             img = cv.imread(filename)
             img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-            x,y,w,h = self.detector.detect_faces(img)[0]['box']
-            x,y = abs(x), abs(y)
-            face = img[y:y+h,x:x+w]
+            face = img
+            #x,y,w,h = self.detector.detect_faces(img)[0]['box']
+            #x,y = abs(x), abs(y)
+            #face = img[y:y+h,x:x+w]
             face_arr = cv.resize(face, self.target_size)
             return face_arr
         except:
@@ -194,8 +195,8 @@ class FaceDetection(ctk.CTkToplevel):
                 w = int(detections[0, 0, i, 5] * rgb_img.shape[1]) - x
                 h = int(detections[0, 0, i, 6] * rgb_img.shape[0]) - y
 
-                padding_x = 50
-                padding_y = 50
+                padding_x = 0
+                padding_y = 0
                 x1, y1 = max(0, x-padding_x), max(0, y-padding_y)
                 face_image = Image.fromarray(cv.cvtColor(rgb_image[y1:y1+h+(2*padding_y), x1:x1+w+(2*padding_x)], cv.COLOR_RGBA2RGB))
 
@@ -260,9 +261,9 @@ class FaceDetection(ctk.CTkToplevel):
                     x2 = int(detections[0, 0, i, 5] * frame.shape[1])
                     y2 = int(detections[0, 0, i, 6] * frame.shape[0])
                     color = (114, 162, 47)
-                    rgb_img = g_and_d.fancyDraw(frame, x=x1, y=y1, x1=x2, y1=y2, color=color)
+                    rgb_img = g_and_d.fancyDraw(rgb_img, x=x1, y=y1, x1=x2, y1=y2, color=color)
 
-            frame_display = ctk.CTkImage(Image.fromarray(cv.cvtColor(rgb_img, cv.COLOR_BGR2RGB)), size=(960, 540))
+            frame_display = ctk.CTkImage(Image.fromarray(rgb_img), size=(960, 540))
             frame_display_label = ctk.CTkLabel(self, image=frame_display, text=None)
             frame_display_label.grid(row=0, column=0, sticky="nw", padx=(0,5), pady=(0,0))
 
