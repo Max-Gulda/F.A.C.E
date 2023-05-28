@@ -323,7 +323,6 @@ def delete_user(user):
     delete_document(user, collection_name='calendar')
     delete_document(user, collection_name='user_jpgs')
 
-upload_everything()
-
-
+if __name__ == "__main__":
+    pass
 
