@@ -1,67 +1,58 @@
-import couchbase
-from couchbase.cluster import Cluster
-from couchbase.options import ClusterOptions
-from couchbase.auth import PasswordAuthenticator
+import couchdb
 import json
 import base64
 import os
 
+def init(self):
 
-def init():
     # Set the admin credentials
-    admin_username = 'FACE'
-    admin_password = 'Flempan123!'
+    admin_username = 'admin'
+    admin_password = 'f.a.c.e.flempan'
 
-    # Set the Couchbase connection parameters
-    cluster_url = 'couchbases://cb.a6cm4sbxf8i5qvak.cloud.couchbase.com'
-    cluster_options = ClusterOptions(PasswordAuthenticator(admin_username, admin_password))
+    # Set the CouchDB URL
+    couchdb_url = 'http://167.172.105.85:5984'
 
-    # Connect to the Couchbase cluster
-    cluster = Cluster(cluster_url, cluster_options)
-    bucket_name = 'travel-sample'
-    bucket = cluster.bucket(bucket_name)
-    collection = bucket.default_collection()
+    # Connect to the CouchDB server
+    server = couchdb.Server(couchdb_url)
+    server.resource.credentials = (admin_username, admin_password)
 
+    # Create or open the database
+    db_name = 'face'
+    if db_name in server:
+        db = server[db_name]
+    else:
+        db = server.create(db_name)
+        
     # Define the document for svm_model_160x160.pkl
     svm_model_doc = {
         'type': 'svm_model'
     }
 
     # Save the document for svm_model_160x160.pkl
-    svm_model_doc_id = 'svm_model_160x160.pkl'
-    collection.upsert(svm_model_doc_id, svm_model_doc)
+    svm_model_doc_id, svm_model_doc_rev = db.save(svm_model_doc)
 
     # Attach the svm_model_160x160.pkl file to the svm_model_doc
     svm_model_file = "Data/svm_model_160x160.pkl"
     with open(svm_model_file, "rb") as f:
         svm_model_data = f.read()
-        encoded_data = base64.b64encode(svm_model_data).decode('utf-8')
-        attachments = {
-            'name': 'svm_model_160x160.pkl',
-            'data': encoded_data,
-            'content_type': 'application/octet-stream'
-        }
-        svm_model_doc['_attachments'] = attachments
-        collection.upsert(svm_model_doc_id, svm_model_doc)
+        db.put_attachment(svm_model_doc, svm_model_data, filename="svm_model_160x160.pkl")
 
     # Define the document for face_embeddings_done_4classes.npz
     face_embeddings_doc = {
         'type': 'face_embeddings'
     }
 
+    # Save the document for face_embeddings_done_4classes.npz
+    face_embeddings_doc_id, face_embeddings_doc_rev = db.save(face_embeddings_doc)
+
     # Attach the face_embeddings_done_4classes.npz file to the face_embeddings_doc
     face_embeddings_file = "Data/face_embeddings_done_4classes.npz"
     with open(face_embeddings_file, "rb") as f:
         face_embeddings_data = f.read()
-        encoded_data = base64.b64encode(face_embeddings_data).decode('utf-8')
-        attachments = {
-            'name': 'face_embeddings_done_4classes.npz',
-            'data': encoded_data,
-            'content_type': 'application/octet-stream'
-        }
-        face_embeddings_doc['_attachments'] = attachments
-        face_embeddings_doc_id = 'face_embeddings_done_4classes.npz'
-        collection.upsert(face_embeddings_doc_id, face_embeddings_doc)
+        db.put_attachment(face_embeddings_doc, face_embeddings_data, filename="face_embeddings_done_4classes.npz")
+        
+    # Print a message to indicate success
+    print("Files attached successfully.")
 
     dir_path = 'dataset'
     dir_list = [d for d in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, d)) and not d.startswith('.')]
@@ -73,7 +64,7 @@ def init():
         if dirname == '.DS_Store':
             continue
         progressbar_len += add_to_progressbar
-        #self.train_progressbar.progressbar.set(progressbar_len)
+        self.train_progressbar.progressbar.set(progressbar_len)
         # Remove the underscore from the directory name
         fullName = dirname.replace('_', ' ')
 
@@ -91,14 +82,13 @@ def init():
             json_base64 = base64.b64encode(json_bytes).decode('utf-8')
 
             # Add the attachment to the user data
-            attachments = {
+            user_data['_attachments'] = {
                 'ms_graph_api_token.json': {
                     'content_type': 'application/json',
                     'data': json_base64,
                     'stub': False  # Set stub to False
                 }
             }
-            user_data['_attachments'] = attachments
         else:
             print("Found no API KEY for " + dirname)
 
@@ -107,7 +97,7 @@ def init():
         print(dir_path)
         file_list = [f for f in os.listdir(dir_path) if not f.startswith('.') and f != '.DS_Store' and os.path.isfile(os.path.join(dir_path, f))]
 
-        # Loop through the file list and process each file
+    # Loop through the file list and process each file
         for filename in file_list:
             # Check if the file is a JPEG image
             if filename.lower().endswith('.jpg'):
@@ -139,12 +129,9 @@ def init():
         # Convert all string values to UTF-8
         user_data = json.loads(json.dumps(user_data, ensure_ascii=False).encode('utf8'))
 
-        # Create a new document in the bucket
-        collection.upsert(str(user_data), user_data)
+        # Create a new document in the database
+        db.save(user_data)
 
         # Print the ID and revision of the new document
         print('New document created for', fullName)
     print("Done uploading all users.")
-
-
-init()

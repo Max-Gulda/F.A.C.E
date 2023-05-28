@@ -28,9 +28,8 @@ import threading
 import shutil
 import fetch_meeting_func as fmf
 import greeting_and_draw as g_and_d
-import download_all as db_down
+import Apollo_on_the_couch as couch
 import add_to_db as db_up
-import backup_db as db_backup
 from sklearn.model_selection import GridSearchCV
 from playsound import playsound
 
@@ -159,7 +158,6 @@ class FaceDetection(ctk.CTkToplevel):
         
         title = ctk.CTkLabel(master=self, text="", font=("Arial", 0))
         title.grid(row=0, column=1, sticky='s')
-
 
     def capture_photo_button(self):
         print("Capture")
@@ -638,7 +636,7 @@ class CTkFaceRecognizer(ctk.CTkToplevel):
                         face_name = self.model.predict(ypred)
                         proba = self.model.predict_proba(ypred).max()
 
-                        if proba > 0.65:
+                        if proba > 0.8:
                             color = (114, 162, 47)  # Blue
                             text_color = (114, 162, 47)  # Blue 
                             final_name = face_name[0]
@@ -1269,6 +1267,7 @@ class CTkClickedUser(ctk.CTkToplevel):
 
         if msg.get() == "Yes":
             shutil.rmtree(folder_path)
+            couch.delete_user(selected_subdir)
         
         app.users = app.get_subdirs(user_path)
         app.content = app.get_all_contents(app.users)
@@ -1282,11 +1281,11 @@ class CTkClickedUser(ctk.CTkToplevel):
         msg = CTkMessagebox(master=self, title="Delete?", message=("Do you want to delete " + converted_name + "'s calendar"), icon="question", option_1="No", option_2="Yes")
 
         if msg.get() == "Yes":
-
             calendar_file = os.path.join(folder_path, 'ms_graph_api_token.json')
             print(calendar_file)
             os.remove(calendar_file)
-
+            couch.delete_document(path)
+        
         app.users = app.get_subdirs(user_path)
         app.content = app.get_all_contents(app.users)
         app.create_user_elements(app.users, app.content)
@@ -1367,8 +1366,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        db_down.init(self)
-
+        couch.download_everything()
 
         self.users = []
         self.users = self.get_subdirs(user_path)
@@ -1587,8 +1585,8 @@ class App(ctk.CTk):
         self.train_progressbar.progress_label.configure(text = "Uploading data..")
         ################################################################################################
         #                   Här kan du ladda upp data på databasen
-        db_backup.init(self)
-        db_up.init(self)
+
+        couch.upload_everything()
 
         ################################################################################################
         self.train_progressbar.progressbar.set(1)
