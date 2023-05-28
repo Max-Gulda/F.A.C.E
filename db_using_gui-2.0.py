@@ -635,7 +635,7 @@ class CTkFaceRecognizer(ctk.CTkToplevel):
                         face_name = self.model.predict(ypred)
                         proba = self.model.predict_proba(ypred).max()
 
-                        if proba > 0.8:
+                        if proba > 0.75:
                             color = (114, 162, 47)  # Blue
                             text_color = (114, 162, 47)  # Blue 
                             final_name = face_name[0]
@@ -1594,9 +1594,6 @@ class App(ctk.CTk):
         elapsed_time = end_time - start_time
         print(f"Elapsed time: {elapsed_time:.2f} seconds")
         
-        
 if __name__ == "__main__":
     app = App()
     app.mainloop()
-
-
