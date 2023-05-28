@@ -299,6 +299,10 @@ def download_everything():
     download_model()
     download_all_images()
 
+def download_pi():
+    download_all_tokens()
+    download_model()
+    
 ################################################################ DELETE #####################################################################
 
 def delete_document(document_id, collection_name='calendar'):
