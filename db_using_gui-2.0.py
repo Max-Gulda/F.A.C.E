@@ -557,8 +557,6 @@ class CTkFaceRecognizer(ctk.CTkToplevel):
         self.encoder = LabelEncoder()
         self.encoder.fit(self.Y)
 
-
-
         self.caffe = cv.dnn.readNetFromCaffe('Data/deploy.prototxt.txt', 'Data/caffe.caffemodel')
         self.model = pickle.load(open("Data/svm_model_160x160.pkl", 'rb'))
 
@@ -604,29 +602,58 @@ class CTkFaceRecognizer(ctk.CTkToplevel):
 
     def recognize(self):
         cooldowns = {"default": 0}
+        timeout = 5  # Timeout in seconds
+        last_frame_time = time.time()
+
         while self.cap.isOpened():
             start_time = time.time()
             _, frame = self.cap.read()
+
+            if frame is None:
+                # No frame received, check for timeout
+                current_time = time.time()
+                if current_time - last_frame_time > timeout:
+                    print("Timeout: No frames received")
+                    break
+                else:
+                    continue
+
+            last_frame_time = time.time()
+
             rgb_img = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
-            h,w = frame.shape[:2]
-            blob = cv.dnn.blobFromImage(cv.resize(frame, (300,300)), 1.0, (300,300), (104.0, 177.0, 123.0))
+            h, w = frame.shape[:2]
+            blob = cv.dnn.blobFromImage(cv.resize(frame, (300, 300)), 1.0, (300, 300), (104.0, 177.0, 123.0))
 
             self.caffe.setInput(blob)
-
             detections = self.caffe.forward()
 
             if detections.shape[2] > 0:
                 try:
+                    face_detected = False  # Initialize the face_detected flag
+
                     for i in range(0, detections.shape[2]):
                         confidence = detections[0, 0, i, 2]
                         if confidence < 0.5:
                             continue
+
+                        face_detected = True  # Set the face_detected flag to True
+
                         box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
                         (startX, startY, endX, endY) = box.astype("int")
+
+                        # Check if the face region is within the bounds of the frame
+                        if startX < 0:
+                            startX = 0
+                        if startY < 0:
+                            startY = 0
+                        if endX > w:
+                            endX = w
+                        if endY > h:
+                            endY = h
+
                         img = rgb_img[startY:endY, startX:endX]
                         img = cv.resize(img, (160, 160))
-                        rgb_img = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
                         img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY)
                         img = np.expand_dims(img_gray, axis=0)
                         img = np.expand_dims(img, axis=-1)
@@ -649,17 +676,24 @@ class CTkFaceRecognizer(ctk.CTkToplevel):
                             proba = 1 - proba
 
                         cv.putText(frame, '{} ({:.2%})'.format(final_name, proba), (startX, startY-20), cv.FONT_HERSHEY_COMPLEX_SMALL, 1, text_color, 2, cv.LINE_AA)
-                        rgb_image = cv.cvtColor(g_and_d.fancyDraw(frame, x=startX, y=startY, x1=endX, y1=endY, color=color),cv.COLOR_BGR2RGB)
+                        rgb_image = cv.cvtColor(g_and_d.fancyDraw(frame, x=startX, y=startY, x1=endX, y1=endY, color=color), cv.COLOR_BGR2RGB)
+                    
+                    if not face_detected:
+                        # No faces detected
+                        final_name = 'Empty'
+                        rgb_image = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
+
                 except Exception as e:
                     print(f"Error reading video frame: {e}")
                     continue
             else:
                 # No faces detected
                 final_name = 'Empty'
+                rgb_image = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
-            frame_display = ctk.CTkImage(Image.fromarray(rgb_image),size=(self.image_width,self.image_height))
-            frame_display_label = ctk.CTkLabel(self, image = frame_display, text = None)
-            frame_display_label.grid(row=0, column=0, sticky="news", rowspan=2, padx=(0,0), pady=(0,0))
+            frame_display = ctk.CTkImage(Image.fromarray(rgb_image), size=(self.image_width, self.image_height))
+            frame_display_label = ctk.CTkLabel(self, image=frame_display, text=None)
+            frame_display_label.grid(row=0, column=0, sticky="news", rowspan=2, padx=(0, 0), pady=(0, 0))
 
             if self.quit_when_true:
                 self.destroy()
@@ -671,8 +705,8 @@ class CTkFaceRecognizer(ctk.CTkToplevel):
             elif final_name not in ['Unknown', 'Empty']:
                 cooldowns[final_name] = time.time() + 60
                 nextMeeting = fmf.fetch_next_meeting_time(os.path.join('dataset', final_name))
-                g_and_d.greeting_and_reminder(final_name, meetingTime = nextMeeting)
-                
+                g_and_d.greeting_and_reminder(final_name, meetingTime=nextMeeting)
+
             end_time = time.time()
             elapsed = end_time - start_time
             print(f"One loop takes: {elapsed:.3f} seconds!")

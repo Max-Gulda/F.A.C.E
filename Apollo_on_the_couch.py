@@ -302,7 +302,7 @@ def download_everything():
 def download_pi():
     download_all_tokens()
     download_model()
-    
+
 ################################################################ DELETE #####################################################################
 
 def delete_document(document_id, collection_name='calendar'):
