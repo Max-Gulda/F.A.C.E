@@ -29,7 +29,6 @@ import shutil
 import fetch_meeting_func as fmf
 import greeting_and_draw as g_and_d
 import Apollo_on_the_couch as couch
-import add_to_db as db_up
 from sklearn.model_selection import GridSearchCV
 from playsound import playsound
 
@@ -1360,8 +1359,8 @@ class UserButton(ctk.CTkButton):
     def button_clicked(self, event):
         configure_user = CTkClickedUser(selected_user = self.subdir, master=self.mainwindow) #master = self.mainwindow,
         configure_user.grab_set()
-        configure_user.focus_set()
-        
+        configure_user.focus_set()        
+
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
