@@ -108,6 +108,7 @@ class FaceDetection(ctk.CTkToplevel):
         self.padding = 0
         self.image_width = 1280
         self.image_height = 720
+        self.master_window = master
         self.mtcnn = MTCNN()
         self.caffe = cv.dnn.readNetFromCaffe('Data/deploy.prototxt.txt', 'Data/caffe.caffemodel')
 
@@ -265,7 +266,11 @@ class FaceDetection(ctk.CTkToplevel):
             frame_display_label.grid(row=0, column=0, sticky="nw", padx=(0,5), pady=(0,0))
 
             if self.quit_when_true:
+                self.master_window.grab_set()
+                self.master_window.focus_set()
+                self.master_window.lift()
                 self.destroy()
+
                 break
 
         self.cap.release()
@@ -545,6 +550,7 @@ class CTkMessagebox(ctk.CTkToplevel):
         self.grab_release()
         self.destroy()
         self.event = event
+
 class CTkFaceRecognizer(ctk.CTkToplevel):
 
     def __init__(self,
@@ -923,9 +929,6 @@ class CTkProgressBox(ctk.CTkToplevel):
         self.progressbar.grid(row=3,column = 0, columnspan = 4, sticky = "news", padx=(4,4))
         self.progressbar.set(0)
         
-        
-
-
         self.option_text_1 = option_1
         self.button_1 = ctk.CTkButton(self.frame_top, text=self.option_text_1, fg_color=self.button_color[0],width=self.button_width, font=self.font, text_color=self.bt_text_color,hover_color=self.bt_hv_color, height=self.button_height,command=lambda: self.button_event(self.option_text_1))
         
@@ -992,7 +995,7 @@ class NewUserPopup(ctk.CTkToplevel):
                  master: any = None):
         super().__init__()
         ############################################ Code for center of window############################################
-
+        
         self.width = 250
         self.height = 350
         self.master_window = master
@@ -1043,15 +1046,26 @@ class NewUserPopup(ctk.CTkToplevel):
         # assume the first child widget is the firstname entry
         firstname_entry = self.nametowidget(self.winfo_children()[2])
         firstname = firstname_entry.get().strip().capitalize()
+        if firstname == "":
+            messagebox.showerror("warning", "No firstname entry found")
+            return
+        
+        if " " in firstname:
+            messagebox.showerror("warning", "Unvalid firstname entry")
+            return
+
         # assume the fifth child widget is the lastname entry
         lastname_entry = self.nametowidget(self.winfo_children()[4])
         lastname = lastname_entry.get().strip().capitalize()
-
+        print(lastname)
+        if lastname == "":
+            messagebox.showerror("warning", "No lastname entry found")
+            return
         # check if user already exists
         user_folder_name = firstname + "_" + lastname
         user_folder_path = os.path.join(user_path, user_folder_name)
         if os.path.exists(user_folder_path):
-            messagebox.showerror("Error", "This user already exists")
+            messagebox.showerror("warning", "This user already exists")
             return
 
         # create user folder
@@ -1246,29 +1260,25 @@ class CTkClickedUser(ctk.CTkToplevel):
         self.button_1 = ctk.CTkButton(self.frame_top, text=self.option_text_1, fg_color=self.button_color[0], width=self.button_width, font=self.font, text_color=self.bt_text_color, height=self.button_height, command=self.add_pictures)
         self.button_1.grid(row=2, column=0, sticky="news", padx=(0,10), pady=10)
 
-        if os.path.exists(temp_path):
-            self.option_text_2 = "Replace Calendar"
-        else:
-            self.option_text_2 = "Add Calendar"    
+        
+        self.option_text_2 = "Add Calendar"    
          
         self.button_2 = ctk.CTkButton(self.frame_top, text=self.option_text_2, fg_color=self.button_color[1], width=self.button_width, font=self.font, text_color=self.bt_text_color, height=self.button_height, command=lambda: self.add_calendar(self.subdir))
         self.button_2.grid(row=2, column=1, sticky="news", padx=10, pady=10)
-
-
         
+        if os.path.exists(temp_path):
+            self.button_2.configure(state="disabled", fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"))
+
         self.option_text_3 = "Delete Calendar"
         self.button_3 = ctk.CTkButton(self.frame_top, text=self.option_text_3, width=self.button_width, font=self.font, text_color=self.bt_text_color, height=self.button_height, command=lambda: self.delete_calendar(self.subdir))
         self.button_3.grid(row=2, column=2, sticky="news", padx=(10,0), pady=10)
-
-
 
         if not os.path.exists(temp_path):
             self.button_3.configure(state="disabled", fg_color="transparent", border_width=2, text_color=("gray10", "#DCE4EE"))
 
         self.option_text_4 = "Delete " + self.subdir.split("_")[0]
         self.button_4 = ctk.CTkButton(self.frame_top, text=self.option_text_4, fg_color=self.button_color[2], width=self.button_width, font=self.font, text_color=self.bt_text_color, height=self.button_height, command=lambda: self.delete_user(self.subdir))
-        self.button_4.grid(row=2, column=3, sticky="news", padx=(10,0), pady=10)
-            
+        self.button_4.grid(row=2, column=3, sticky="news", padx=(10,0), pady=10)       
 
     def get(self):
         if self.winfo_exists():
@@ -1286,9 +1296,10 @@ class CTkClickedUser(ctk.CTkToplevel):
 
     def add_pictures(self):
         #self.selected_user = self.user_var.get()
-        detection = FaceDetection(self, directory=self.subdir)
+        detection = FaceDetection(master = self.master_window, directory = self.subdir)
         detection.grab_set()
         detection.focus_set()
+        self.destroy()
 
     def delete_user(self,selected_subdir):
         
@@ -1299,13 +1310,19 @@ class CTkClickedUser(ctk.CTkToplevel):
         msg = CTkMessagebox(master=self, title="Delete?", message=("Do you want to delete " + converted_name), icon="question", option_1="No", option_2="Yes")
 
         if msg.get() == "Yes":
-            shutil.rmtree(folder_path)
-            couch.delete_user(selected_subdir)
+            try:
+                shutil.rmtree(folder_path)
+                self.destroy()
+                couch.delete_user(selected_subdir)
+            except Exception as e:
+                print(f"Error: {e}")
+
+        self.master_window.users = self.master_window.get_subdirs(user_path)
+        self.master_window.content = self.master_window.get_all_contents(self.master_window.users)
+        self.master_window.create_user_elements(self.master_window.users, self.master_window.content)
+        #self.master_window.radio_button_event()
+        self.lift()
         
-        app.users = app.get_subdirs(user_path)
-        app.content = app.get_all_contents(app.users)
-        app.create_user_elements(app.users, app.content)
-        app.radio_button_event()
 
     def delete_calendar(self, path):
         folder_path = os.path.join(user_path,path)
@@ -1317,6 +1334,7 @@ class CTkClickedUser(ctk.CTkToplevel):
             calendar_file = os.path.join(folder_path, 'ms_graph_api_token.json')
             print(calendar_file)
             os.remove(calendar_file)
+            self.destroy()
             couch.delete_document(path)
         
         app.users = app.get_subdirs(user_path)
@@ -1362,8 +1380,10 @@ class CTkClickedUser(ctk.CTkToplevel):
                 msg = CTkMessagebox(master=self, title="User token", message="User token = " + flow['user_code'] + " do you want to copy?", icon="question", option_1="No", option_2="Yes", topmost=False)
                 if msg.get() == "No":
                     msg.destroy()
+                    self.destroy()
                 else:
                     msg.destroy()
+                    self.destroy()
                     pyperclip.copy(flow['user_code'])
                 webbrowser.open('https://microsoft.com/devicelogin')
                 token_response = client.acquire_token_by_device_flow(flow)
@@ -1386,14 +1406,15 @@ class CTkClickedUser(ctk.CTkToplevel):
 class UserButton(ctk.CTkButton):
     def __init__(self, master=None, subdir=None, mainwindow = None, **kwargs):
         super().__init__(master, **kwargs)
+
         self.subdir = subdir
         self.mainwindow = mainwindow
         self.bind('<Button-1>', self.button_clicked)
     
     def button_clicked(self, event):
-        configure_user = CTkClickedUser(selected_user = self.subdir, master=self.mainwindow) #master = self.mainwindow,
+        configure_user = CTkClickedUser(selected_user = self.subdir, master=self.mainwindow, topmost=True) #master = self.mainwindow,
         configure_user.grab_set()
-        configure_user.focus_set()        
+        configure_user.focus_set()
 
 class App(ctk.CTk):
     def __init__(self):
